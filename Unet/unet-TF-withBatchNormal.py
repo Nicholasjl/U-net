@@ -20,8 +20,8 @@ TRAIN_SET_NAME = 'train_set.tfrecords'
 VALIDATION_SET_NAME = 'validation_set.tfrecords'
 TEST_SET_NAME = 'test_set.tfrecords'
 ORIGIN_PREDICT_DIRECTORY = '../data_set/test'
-INPUT_IMG_WIDE, INPUT_IMG_HEIGHT, INPUT_IMG_CHANNEL = 512, 512, 1
-OUTPUT_IMG_WIDE, OUTPUT_IMG_HEIGHT, OUTPUT_IMG_CHANNEL = 512, 512, 1
+INPUT_IMG_WIDE, INPUT_IMG_HEIGHT, INPUT_IMG_CHANNEL = 512, 1024, 1
+OUTPUT_IMG_WIDE, OUTPUT_IMG_HEIGHT, OUTPUT_IMG_CHANNEL = 512, 1024, 1
 TRAIN_SET_SIZE = 8
 EPOCH_NUM = 1
 TRAIN_BATCH_SIZE = 1
@@ -836,13 +836,13 @@ def main():
 	# net.set_up_unet(TEST_BATCH_SIZE)
 	# net.test()
 	net.set_up_unet(PREDICT_BATCH_SIZE)
-	net.predict()
+	net.train()
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	# 数据地址
 	parser.add_argument(
-		'--data_dir', type=str, default='../data_set/my_set',
+		'--data_dir', type=str, default='../data_set',
 		help='Directory for storing input data')
 
 	# 模型保存地址
