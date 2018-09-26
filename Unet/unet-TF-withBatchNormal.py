@@ -20,8 +20,8 @@ TRAIN_SET_NAME = 'train_set.tfrecords'
 VALIDATION_SET_NAME = 'validation_set.tfrecords'
 TEST_SET_NAME = 'test_set.tfrecords'
 ORIGIN_PREDICT_DIRECTORY = '../data_set/test'
-INPUT_IMG_WIDE, INPUT_IMG_HEIGHT, INPUT_IMG_CHANNEL = 512, 1024, 1
-OUTPUT_IMG_WIDE, OUTPUT_IMG_HEIGHT, OUTPUT_IMG_CHANNEL = 512, 1024, 1
+INPUT_IMG_WIDE, INPUT_IMG_HEIGHT, INPUT_IMG_CHANNEL = 512, 512, 1
+OUTPUT_IMG_WIDE, OUTPUT_IMG_HEIGHT, OUTPUT_IMG_CHANNEL = 512, 512, 1
 TRAIN_SET_SIZE = 8
 EPOCH_NUM = 1
 TRAIN_BATCH_SIZE = 1
@@ -33,7 +33,7 @@ PREDICT_SAVED_DIRECTORY = '../data_set/predictions'
 EPS = 10e-5
 FLAGS = None
 CLASS_NUM = 2
-CHECK_POINT_PATH = '../data_set/saved_models/train_5th/model.ckpt'
+CHECK_POINT_PATH = '../data_set/saved_models/model.ckpt'
 
 
 def calculate_unet_input_and_output(bottom=0):
@@ -692,6 +692,9 @@ class Unet:
 							self.lamb: 0.004, self.is_traing: True}
 					)
 					epoch += 1
+					if epoch>1000:
+						break
+
 			except tf.errors.OutOfRangeError:
 				print('Done training -- epoch limit reached')
 			finally:
@@ -799,10 +802,14 @@ class Unet:
 		import cv2
 		import glob
 		import numpy as np
-		predict_file_path = glob.glob(os.path.join(ORIGIN_PREDICT_DIRECTORY, '*.tif'))
-		print(len(predict_file_path))
-		if not os.path.lexists(PREDICT_SAVED_DIRECTORY):
-			os.mkdir(PREDICT_SAVED_DIRECTORY)
+		os.mkdir('../test_labels')
+		for _dir in ORIGIN_PREDICT_DIRECTORY:
+			if not os.path.lexists(_dir):
+				os.mkdir(_dir)
+			dirlist = glob.glob(os.path.join(ORIGIN_PREDICT_DIRECTORY,_dir))
+			for dirr in dirlist:
+
+		
 		ckpt_path = os.path.join(FLAGS.model_dir, "model.ckpt") # CHECK_POINT_PATH
 		all_parameters_saver = tf.train.Saver()
 		with tf.Session() as sess:  # 开始一个会话
@@ -822,6 +829,7 @@ class Unet:
 						self.input_image: image, self.keep_prob: 1.0, self.lamb: 0.004, self.is_traing: False
 					}
 				)
+				predict_image=cv2.resize(1,128,256)
 				cv2.imwrite(os.path.join(PREDICT_SAVED_DIRECTORY, '%d.jpg' % index), predict_image[0])  # * 255
 		print('Done prediction')
 
@@ -836,7 +844,8 @@ def main():
 	# net.set_up_unet(TEST_BATCH_SIZE)
 	# net.test()
 	net.set_up_unet(PREDICT_BATCH_SIZE)
-	net.train()
+	#net.train()
+	net.test()
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
