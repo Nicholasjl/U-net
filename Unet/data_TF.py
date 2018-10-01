@@ -17,7 +17,7 @@ import os
 import glob
 import cv2
 import tensorflow as tf
-
+import numpy as np
 TRAIN_SET_NAME = 'train_set.tfrecords'
 VALIDATION_SET_NAME = 'validation_set.tfrecords'
 TEST_SET_NAME = 'test_set.tfrecords'
@@ -96,10 +96,12 @@ def write_img_to_tfrecords():
 			# train_image = cv2.resize(src=train_image, dsize=(INPUT_IMG_WIDE, INPUT_IMG_HEIGHT))
 			# train_image = np.asarray(a=train_image, dtype=np.uint8)
 			train_image = cv2.resize(src=train_image, dsize=(INPUT_IMG_WIDE, INPUT_IMG_HEIGHT))
-			#train_label = np.asarray(a=train_label, dtype=np.uint8)
+			
 			train_label = cv2.resize(src=train_label, dsize=(OUTPUT_IMG_WIDE, OUTPUT_IMG_HEIGHT))
-			#train_label[train_label <= 100] = 0
-			#train_label[train_label > 100] = 1
+			train_label = np.asarray(a=train_label, dtype=np.uint8)
+			train_label[train_label == 128] = 1
+			train_label[train_label == 191] = 2
+			train_label[train_label == 255] = 3
 			# train_image = io.imread(file_path)
 			# train_image = transform.resize(train_image, (INPUT_IMG_WIDE, INPUT_IMG_HEIGHT, INPUT_IMG_CHANNEL))
 			# sample_image = train_image[:, :, 0]
@@ -130,7 +132,10 @@ def write_img_to_tfrecords():
 			validation_image = cv2.resize(src=validation_image, dsize=(INPUT_IMG_WIDE, INPUT_IMG_HEIGHT))
 		# validation_label = np.asarray(a=validation_label, dtype=np.uint8)
 			validation_label = cv2.resize(src=validation_label, dsize=(OUTPUT_IMG_WIDE, OUTPUT_IMG_HEIGHT))
-		
+			validation_label = np.asarray(a=validation_label, dtype=np.uint8)
+			validation_label[validation_label == 128] = 1
+			validation_label[validation_label == 191] = 2
+			validation_label[validation_label == 255] = 3
 		# validation_image = io.imread(file_path)
 		# validation_image = transform.resize(validation_image, (INPUT_IMG_WIDE, INPUT_IMG_HEIGHT, INPUT_IMG_CHANNEL))
 		# sample_image = validation_image[:, :, 0]
@@ -191,8 +196,10 @@ def write_img_to_tfrecords():
 			predict_image = cv2.resize(src=predict_image, dsize=(INPUT_IMG_WIDE, INPUT_IMG_HEIGHT))
 		# predict_label = np.asarray(a=predict_label, dtype=np.uint8)
 			predict_label = cv2.resize(src=predict_label, dsize=(OUTPUT_IMG_WIDE, OUTPUT_IMG_HEIGHT))
-		#predict_label[predict_label <= 100] = 0
-		#predict_label[predict_label > 100] = 1
+			predict_label = np.asarray(a=train_label, dtype=np.uint8)
+			predict_label[predict_label == 128] = 1
+			predict_label[predict_label == 191] = 2
+			predict_label[predict_label == 255] = 3
 		# predict_image = io.imread(file_path)
 		# predict_image = transform.resize(predict_image, (INPUT_IMG_WIDE, INPUT_IMG_HEIGHT, INPUT_IMG_CHANNEL))
 		# sample_image = predict_image[:, :, 0]

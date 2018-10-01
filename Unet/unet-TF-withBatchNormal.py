@@ -32,8 +32,8 @@ PREDICT_BATCH_SIZE = 1
 PREDICT_SAVED_DIRECTORY = '../data_set/predictions'
 EPS = 10e-5
 FLAGS = None
-CLASS_NUM = 2
-CHECK_POINT_PATH = '../data_set/saved_models/model.ckpt'
+CLASS_NUM = 4
+CHECK_POINT_PATH = '../data_set/saved_models/train_5th/model.ckpt'
 
 
 def calculate_unet_input_and_output(bottom=0):
@@ -54,7 +54,7 @@ def calculate_unet_input_and_output(bottom=0):
 	print(y)
 	print(z)
 
-
+'''
 def convert_from_color_segmentation(image_3d=None):
 	import numpy as np
 	from skimage import img_as_ubyte
@@ -94,7 +94,7 @@ def convert_from_color_segmentation(image_3d=None):
 		image_2d[m] = index
 
 	return image_2d
-
+'''
 
 def write_img_to_tfrecords():
 	import cv2
@@ -692,9 +692,8 @@ class Unet:
 							self.lamb: 0.004, self.is_traing: True}
 					)
 					epoch += 1
-					if epoch>1000:
+					if epoch>1000 :
 						break
-
 			except tf.errors.OutOfRangeError:
 				print('Done training -- epoch limit reached')
 			finally:
@@ -802,56 +801,60 @@ class Unet:
 		import cv2
 		import glob
 		import numpy as np
-		os.mkdir('../test_labels')
-		for _dir in ORIGIN_PREDICT_DIRECTORY:
-			if not os.path.lexists(_dir):
-				os.mkdir(_dir)
-			dirlist = glob.glob(os.path.join(ORIGIN_PREDICT_DIRECTORY,_dir))
-			for dirr in dirlist:
-
-		
-		ckpt_path = os.path.join(FLAGS.model_dir, "model.ckpt") # CHECK_POINT_PATH
-		all_parameters_saver = tf.train.Saver()
-		with tf.Session() as sess:  # 开始一个会话
-			sess.run(tf.global_variables_initializer())
-			sess.run(tf.local_variables_initializer())
-			# summary_writer = tf.summary.FileWriter(FLAGS.tb_dir, sess.graph)
-			# tf.summary.FileWriter(FLAGS.model_dir, sess.graph)
-			all_parameters_saver.restore(sess=sess, save_path=ckpt_path)
-			for index, image_path in enumerate(predict_file_path):
-				# image = cv2.imread(image_path, flags=0)
-				image = np.reshape(
-					a=cv2.imread(image_path, flags=0),
-					newshape=(1, INPUT_IMG_WIDE, INPUT_IMG_HEIGHT, INPUT_IMG_CHANNEL))
-				predict_image = sess.run(
-					tf.argmax(input=self.prediction, axis=3),
-					feed_dict={
-						self.input_image: image, self.keep_prob: 1.0, self.lamb: 0.004, self.is_traing: False
-					}
-				)
-				predict_image=cv2.resize(1,128,256)
-				cv2.imwrite(os.path.join(PREDICT_SAVED_DIRECTORY, '%d.jpg' % index), predict_image[0])  # * 255
+		for dir in os.listdir(ORIGIN_PREDICT_DIRECTORY):
+			try:
+				os.mkdir(os.path.join('../data_set/predict_label',dir))
+			except:				
+				print("mkdir finished")
+			predict_file_path = os.listdir(os.path.join(ORIGIN_PREDICT_DIRECTORY,dir))
+			print(len(predict_file_path))
+			#if not os.path.lexists(PREDICT_SAVED_DIRECTORY):
+			#	os.mkdir(PREDICT_SAVED_DIRECTORY)
+			ckpt_path = os.path.join(FLAGS.model_dir, "model.ckpt") # CHECK_POINT_PATH
+			all_parameters_saver = tf.train.Saver()
+			with tf.Session() as sess:  # 开始一个会话
+				sess.run(tf.global_variables_initializer())
+				sess.run(tf.local_variables_initializer())
+				# summary_writer = tf.summary.FileWriter(FLAGS.tb_dir, sess.graph)
+				# tf.summary.FileWriter(FLAGS.model_dir, sess.graph)
+				all_parameters_saver.restore(sess=sess, save_path=ckpt_path)
+				for name in predict_file_path:
+					# image = cv2.imread(image_path, flags=0)
+					img=cv2.resize(cv2.imread(os.path.join(ORIGIN_PREDICT_DIRECTORY,dir,name)),(512,512))
+					img=cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+					image = np.reshape(a=img,newshape=(1, INPUT_IMG_WIDE, INPUT_IMG_HEIGHT, INPUT_IMG_CHANNEL))
+					predict_image = sess.run(
+						tf.argmax(input=self.prediction, axis=3),
+						feed_dict={
+							self.input_image: image, self.keep_prob: 1.0, self.lamb: 0.004, self.is_traing: False
+						}
+					)
+					#predict_image0=cv2.resize(predict_image[0],(128,512))
+					image0=np.asarray(a=predict_image[0], dtype=np.uint8)
+					image0[image0 == 1] = 128
+					image0[image0 == 2] = 191
+					image0[image0 == 3] = 255
+					cv2.imwrite(os.path.join('../data_set/predict_label',dir,name), predict_image[0])  # * 255
 		print('Done prediction')
 
 
 def main():
 	net = Unet()
 	CHECK_POINT_PATH = os.path.join(FLAGS.model_dir, "model.ckpt")
-	# net.set_up_unet(TRAIN_BATCH_SIZE)
-	# net.train()
+	#net.set_up_unet(TRAIN_BATCH_SIZE)
+	#net.train()
 	# net.set_up_unet(VALIDATION_BATCH_SIZE)
 	# net.validate()
 	# net.set_up_unet(TEST_BATCH_SIZE)
 	# net.test()
 	net.set_up_unet(PREDICT_BATCH_SIZE)
-	#net.train()
-	net.test()
+	net.predict()
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	# 数据地址
 	parser.add_argument(
-		'--data_dir', type=str, default='../data_set',
+		'--data_dir', type=str, default='../data_set/',
 		help='Directory for storing input data')
 
 	# 模型保存地址
