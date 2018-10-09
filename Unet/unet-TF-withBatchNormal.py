@@ -22,7 +22,6 @@ TEST_SET_NAME = 'test_set.tfrecords'
 ORIGIN_PREDICT_DIRECTORY = '../data_set/test'
 INPUT_IMG_WIDE, INPUT_IMG_HEIGHT, INPUT_IMG_CHANNEL = 512, 512, 1
 OUTPUT_IMG_WIDE, OUTPUT_IMG_HEIGHT, OUTPUT_IMG_CHANNEL = 512, 512, 1
-TRAIN_SET_SIZE = 8
 EPOCH_NUM = 1
 TRAIN_BATCH_SIZE = 1
 VALIDATION_BATCH_SIZE = 1
@@ -54,113 +53,6 @@ def calculate_unet_input_and_output(bottom=0):
 	print(y)
 	print(z)
 
-'''
-def convert_from_color_segmentation(image_3d=None):
-	import numpy as np
-	from skimage import img_as_ubyte
-	import warnings
-	patterns = {
-		(0, 0, 0):          0,      # 背景
-		(128, 0, 0):        1,      # 飞机
-		(0, 128, 0):        2,      # 自行车
-		(128, 128, 0):      3,      # 鸟
-		(0, 0, 128):        4,      # 船
-		(128, 0, 128):      5,      # 瓶子
-		(0, 128, 128):      6,      # 大巴
-		(128, 128, 128):    7,      # 车
-		(64, 0, 0):         8,      # 猫
-		(192, 0, 0):        9,      # 椅子
-		(64, 128, 0):       10,     # 牛
-		(192, 128, 0):      11,     # 餐桌
-		(64, 0, 128):       12,     # 狗
-		(192, 0, 128):      13,     # 马
-		(64, 128, 128):     14,     # 摩托车
-		(192, 128, 128):    15,     # 人
-		(0, 64, 0):         16,     # 盆栽
-		(128, 64, 0):       17,     # 羊
-		(0, 192, 0):        18,     # 沙发
-		(128, 192, 0):      19,     # 火车
-		(0, 64, 128):       20      # 显示器
-	}
-	with warnings.catch_warnings():
-		warnings.simplefilter("ignore")
-		image_3d = img_as_ubyte(image_3d)
-	image_2d = np.zeros((image_3d.shape[0], image_3d.shape[1]), dtype=np.uint8)
-	for pattern, index in patterns.items():
-		# print(pattern)
-		# print(index)
-		m = (image_3d == np.array(pattern).reshape(1, 1, 3)).all(axis=2)
-		# print(m)
-		image_2d[m] = index
-
-	return image_2d
-'''
-
-def write_img_to_tfrecords():
-	import cv2
-	# from skimage import io, transform
-	import glob
-	import numpy as np
-	train_set_size = 28
-	validation_set_size = 2
-	path = glob.glob(os.path.join('/home/dufanxin/PycharmProjects/Image-Augmentor/inputdata/image', 'combine0.png'))
-	print(len(path))
-	train_set_writer = tf.python_io.TFRecordWriter(os.path.join(FLAGS.data_dir, TRAIN_SET_NAME))  # 要生成的文件
-	validation_set_writer = tf.python_io.TFRecordWriter(os.path.join(FLAGS.data_dir, VALIDATION_SET_NAME))
-	# test_set_writer = tf.python_io.TFRecordWriter(os.path.join(FLAGS.data_dir, 'test_set.tfrecords'))  # 要生成的文件
-	train_path = path[:10000]
-	validation_path = path[10000:]
-	# print(len(path))
-
-	for index, file_path in enumerate(train_path):
-		train_image = cv2.imread(file_path)
-		# train_image = cv2.resize(src=train_image, dsize=(INPUT_IMG_WIDE, INPUT_IMG_HEIGHT))
-		sample_image = np.asarray(a=train_image[:, :, 0], dtype=np.uint8)
-		sample_image = cv2.resize(src=sample_image, dsize=(INPUT_IMG_WIDE, INPUT_IMG_HEIGHT))
-		label_image = np.asarray(a=train_image[:, :, 2], dtype=np.uint8)
-		label_image = cv2.resize(src=label_image, dsize=(OUTPUT_IMG_WIDE, OUTPUT_IMG_HEIGHT))
-		label_image[label_image <= 100] = 0
-		label_image[label_image > 100] = 1
-		# train_image = io.imread(file_path)
-		# train_image = transform.resize(train_image, (INPUT_IMG_WIDE, INPUT_IMG_HEIGHT, INPUT_IMG_CHANNEL))
-		# sample_image = train_image[:, :, 0]
-		# label_image = train_image[:, :, 2]
-		# label_image[label_image < 100] = 0
-		# label_image[label_image > 100] = 10
-		example = tf.train.Example(features=tf.train.Features(feature={
-			'label': tf.train.Feature(bytes_list=tf.train.BytesList(value=[label_image.tobytes()])),
-			'image_raw': tf.train.Feature(bytes_list=tf.train.BytesList(value=[sample_image.tobytes()]))
-		}))  # example对象对label和image数据进行封装
-		train_set_writer.write(example.SerializeToString())  # 序列化为字符串
-		if index % 100 == 0:
-			print('Done train_set writing %.2f%%' % (index / train_set_size * 100))
-	train_set_writer.close()
-	print("Done train_set writing")
-
-	for index, file_path in enumerate(validation_path):
-		validation_image = cv2.imread(file_path)
-		# validation_image = cv2.resize(src=validation_image, dsize=(INPUT_IMG_WIDE, INPUT_IMG_HEIGHT))
-		sample_image = np.asarray(a=validation_image[:, :, 0], dtype=np.uint8)
-		sample_image = cv2.resize(src=sample_image, dsize=(INPUT_IMG_WIDE, INPUT_IMG_HEIGHT))
-		label_image = np.asarray(validation_image[:, :, 2], dtype=np.uint8)
-		label_image = cv2.resize(src=label_image, dsize=(OUTPUT_IMG_WIDE, OUTPUT_IMG_HEIGHT))
-		label_image[label_image <= 100] = 0
-		label_image[label_image > 100] = 10
-		# validation_image = io.imread(file_path)
-		# validation_image = transform.resize(validation_image, (INPUT_IMG_WIDE, INPUT_IMG_HEIGHT, INPUT_IMG_CHANNEL))
-		# sample_image = validation_image[:, :, 0]
-		# label_image = validation_image[:, :, 2]
-		# label_image[label_image < 100] = 0
-		# label_image[label_image > 100] = 10
-		example = tf.train.Example(features=tf.train.Features(feature={
-			'label': tf.train.Feature(bytes_list=tf.train.BytesList(value=[label_image.tobytes()])),
-			'image_raw': tf.train.Feature(bytes_list=tf.train.BytesList(value=[sample_image.tobytes()]))
-		}))  # example对象对label和image数据进行封装
-		validation_set_writer.write(example.SerializeToString())  # 序列化为字符串
-		if index % 100 == 0:
-			print('Done validation_set writing %.2f%%' % (index / validation_set_size * 100))
-	validation_set_writer.close()
-	print("Done validation_set writing")
 
 
 def read_check_tfrecords():
@@ -220,8 +112,8 @@ def read_image_batch(file_queue, batch_size):
 	image_batch, label_batch = tf.train.shuffle_batch(
 		tensors=[img, label], batch_size=batch_size,
 		capacity=capacity, min_after_dequeue=min_after_dequeue)
-	# one_hot_labels = tf.to_float(tf.one_hot(indices=label_batch, depth=CLASS_NUM))
-	one_hot_labels = tf.reshape(label_batch, [batch_size, OUTPUT_IMG_HEIGHT, OUTPUT_IMG_WIDE])
+	one_hot_labels = tf.to_float(tf.one_hot(indices=label_batch, depth=CLASS_NUM))
+	one_hot_labels = tf.reshape(one_hot_labels, [batch_size, OUTPUT_IMG_HEIGHT, OUTPUT_IMG_WIDE,CLASS_NUM])
 	return image_batch, one_hot_labels
 
 
@@ -308,9 +200,7 @@ class Unet:
 		result_from_contract_layer_crop = result_from_contract_layer
 		return tf.concat(values=[result_from_contract_layer_crop, result_from_upsampling], axis=-1)
 
-	@staticmethod
-	def conv(w, bias,):
-		return
+	
 
 	def set_up_unet(self, batch_size):
 		# input
@@ -337,7 +227,7 @@ class Unet:
 			# For sparse_softmax_cross_entropy_with_logits(labels=self.input_label, logits=self.prediction, name='loss')
 			# not using one-hot coding
 			self.input_label = tf.placeholder(
-				dtype=tf.int32, shape=[batch_size, OUTPUT_IMG_WIDE, OUTPUT_IMG_WIDE], name='input_labels'
+				dtype=tf.int32, shape=[batch_size, OUTPUT_IMG_WIDE, OUTPUT_IMG_WIDE,CLASS_NUM], name='input_labels'
 			)
 			self.keep_prob = tf.placeholder(dtype=tf.float32, name='keep_prob')
 			self.lamb = tf.placeholder(dtype=tf.float32, name='lambda')
@@ -626,12 +516,14 @@ class Unet:
 		# softmax loss
 		with tf.name_scope('softmax_loss'):
 			# using one-hot
-			# self.loss = \
-			# 	tf.nn.softmax_cross_entropy_with_logits(labels=self.cast_label, logits=self.prediction, name='loss')
+			self.loss = \
+			 	tf.nn.softmax_cross_entropy_with_logits(labels=self.input_label, logits=self.prediction, name='loss')
 
 			# not using one-hot
-			self.loss = \
-				tf.nn.sparse_softmax_cross_entropy_with_logits(labels=self.input_label, logits=self.prediction, name='loss')
+			#smax=tf.nn.softmax(self.prediction)
+			#self.loss = -tf.reduce_mean(self.input_label*tf.log(smax))
+				#tf.nn.sparse_softmax_cross_entropy_with_logits(labels=tf.clip_by_value(self.input_label,EPS,255), logits=tf.clip_by_value(self.prediction,EPS,255), name='loss')
+				
 			self.loss_mean = tf.reduce_mean(self.loss)
 			tf.add_to_collection(name='loss', value=self.loss_mean)
 			self.loss_all = tf.add_n(inputs=tf.get_collection(key='loss'))
@@ -639,17 +531,17 @@ class Unet:
 		# accuracy
 		with tf.name_scope('accuracy'):
 			# using one-hot
-			# self.correct_prediction = tf.equal(tf.argmax(self.prediction, axis=3), tf.argmax(self.cast_label, axis=3))
+			self.correct_prediction = tf.equal(tf.argmax(self.prediction, axis=3), tf.argmax(self.input_label, axis=3))
 
 			# not using one-hot
-			self.correct_prediction = \
-				tf.equal(tf.argmax(input=self.prediction, axis=3, output_type=tf.int32), self.input_label)
+			#self.correct_prediction = \
+			#	tf.equal(tf.argmax(input=self.prediction, axis=3, output_type=tf.int32), self.input_label)
 			self.correct_prediction = tf.cast(self.correct_prediction, tf.float32)
 			self.accuracy = tf.reduce_mean(self.correct_prediction)
 
 		# Gradient Descent
 		with tf.name_scope('Gradient_Descent'):
-			self.train_step = tf.train.AdamOptimizer(learning_rate=1e-4).minimize(self.loss_all)
+			self.train_step = tf.train.AdamOptimizer(learning_rate=1e-6).minimize(self.loss_all)
 
 	def train(self):
 		train_file_path = os.path.join(FLAGS.data_dir, TRAIN_SET_NAME)
@@ -662,8 +554,10 @@ class Unet:
 		merged_summary = tf.summary.merge_all()
 		all_parameters_saver = tf.train.Saver()
 		with tf.Session() as sess:  # 开始一个会话
+			
 			sess.run(tf.global_variables_initializer())
 			sess.run(tf.local_variables_initializer())
+			all_parameters_saver.restore(sess=sess, save_path=ckpt_path)
 			summary_writer = tf.summary.FileWriter(FLAGS.tb_dir, sess.graph)
 			tf.summary.FileWriter(FLAGS.model_dir, sess.graph)
 			coord = tf.train.Coordinator()
@@ -692,7 +586,7 @@ class Unet:
 							self.lamb: 0.004, self.is_traing: True}
 					)
 					epoch += 1
-					if epoch>1000 :
+					if epoch>5000 :
 						break
 			except tf.errors.OutOfRangeError:
 				print('Done training -- epoch limit reached')
@@ -702,6 +596,7 @@ class Unet:
 				coord.request_stop()
 			# coord.request_stop()
 			coord.join(threads)
+		
 		print("Done training")
 
 	def validate(self):
@@ -802,10 +697,8 @@ class Unet:
 		import glob
 		import numpy as np
 		for dir in os.listdir(ORIGIN_PREDICT_DIRECTORY):
-			try:
-				os.mkdir(os.path.join('../data_set/predict_label',dir))
-			except:				
-				print("mkdir finished")
+			n=np.array([[[]]],dtype=np.uint8)
+			
 			predict_file_path = os.listdir(os.path.join(ORIGIN_PREDICT_DIRECTORY,dir))
 			print(len(predict_file_path))
 			#if not os.path.lexists(PREDICT_SAVED_DIRECTORY):
@@ -830,24 +723,44 @@ class Unet:
 						}
 					)
 					#predict_image0=cv2.resize(predict_image[0],(128,512))
-					image0=np.asarray(a=predict_image[0], dtype=np.uint8)
-					image0[image0 == 1] = 128
-					image0[image0 == 2] = 191
-					image0[image0 == 3] = 255
-					cv2.imwrite(os.path.join('../data_set/predict_label',dir,name), predict_image[0])  # * 255
+					image=np.asarray(a=predict_image, dtype=np.uint8)
+					image=image.reshape([512,512])
+					image1=np.zeros((1024,512))
+					for x in range(512):
+						for y in range(512):
+							image1[x*2,y]=image1[x*2+1,y]=image[x,y]
+
+						
+					'''
+					image0=image[:,:,0]
+					image1=image[:,:,1]
+					image2=image[:,:,2]
+					image3=image[:,:,3]
+					
+					image[image0 >= 0.5] = 0
+					image[image1 >= 0.5] = 1
+					image[image2 <= 0.5] = 2
+					image[image3 <= 0.5] = 3
+					'''
+					#image=cv2.resize(image,(1024,512))
+					
+					n=np.append(n,np.asarray(a=image1, dtype=np.uint8))
+					#cv2.imwrite(os.path.join('../data_set/predict_label',dir,name), image0)  # * 255
+			n=n.reshape([128,1024,512])
+			np.save(os.path.join('../data_set/predict_label',dir[:-4]+'_volumes'),n)
 		print('Done prediction')
 
 
 def main():
 	net = Unet()
 	CHECK_POINT_PATH = os.path.join(FLAGS.model_dir, "model.ckpt")
-	#net.set_up_unet(TRAIN_BATCH_SIZE)
-	#net.train()
+	net.set_up_unet(TRAIN_BATCH_SIZE)
+	net.train()
 	# net.set_up_unet(VALIDATION_BATCH_SIZE)
 	# net.validate()
 	# net.set_up_unet(TEST_BATCH_SIZE)
 	# net.test()
-	net.set_up_unet(PREDICT_BATCH_SIZE)
+	#net.set_up_unet(PREDICT_BATCH_SIZE)
 	net.predict()
 
 if __name__ == '__main__':
